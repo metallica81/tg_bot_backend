@@ -29,6 +29,16 @@ router.post("/schedule", async (req, res) => {
     const pool = await poolPromise;
 
     try {
+        await pool.request().query(`
+            DELETE FROM ScheduleLesson;
+            DELETE FROM ScheduleDay;
+            DELETE FROM Schedule;
+
+            DBCC CHECKIDENT ('Schedule', RESEED, 0);
+            DBCC CHECKIDENT ('ScheduleDay', RESEED, 0);
+            DBCC CHECKIDENT ('ScheduleLesson', RESEED, 0);
+        `);
+
         for (const key of data.instructorStack) {
             const instructorData = data[key];
             const tgId = instructorData.tg_id;
@@ -42,7 +52,7 @@ router.post("/schedule", async (req, res) => {
                     // Вставка без явного указания schedule_id
                     const scheduleInsert = await pool
                         .request()
-                        .input("week_number", 1)
+                        .input("week_number", weekNumber)
                         .query(
                             "INSERT INTO Schedule (week_number) OUTPUT INSERTED.schedule_id VALUES (@week_number)"
                         );
