@@ -104,4 +104,74 @@ router.post("/schedule", async (req, res) => {
     }
 });
 
+// Роут для получения расписания для 1-й и 2-й недели
+router.get("/schedule", async (req, res) => {
+    try {
+        const pool = await poolPromise;
+
+        // Запрос на получение расписания для 1-й и 2-й недели
+        const result = await pool.request().query(`
+            SELECT 
+                s.schedule_id, 
+                s.week_number, 
+                sd.day_id, 
+                sd.day_of_week, 
+                sd.lesson_date, 
+                sl.lesson_number, 
+                sl.start_time, 
+                sl.end_time, 
+                sl.classroom
+            FROM Schedule s
+            LEFT JOIN ScheduleDay sd ON s.schedule_id = sd.schedule_id
+            LEFT JOIN ScheduleLesson sl ON sd.day_id = sl.day_id
+            ORDER BY s.schedule_id, sd.day_of_week, sl.lesson_number
+        `);
+
+        // Форматируем данные, если нужно, для удобства на клиенте
+        const schedules = result.recordset;
+        console.log(schedules)
+
+        // Структурируем данные для фронта (примерная структура)
+        const structuredSchedules = schedules.reduce((acc, curr) => {
+            if (!acc[curr.schedule_id]) {
+                acc[curr.schedule_id] = {
+                    week_number: curr.week_number,
+                    days: [],
+                };
+            }
+
+            // Добавляем день
+            let day = acc[curr.schedule_id].days.find(
+                (day) => day.day_of_week === curr.day_of_week
+            );
+            if (!day) {
+                day = {
+                    day_of_week: curr.day_of_week,
+                    date: curr.lesson_date,
+                    lessons: [],
+                };
+                acc[curr.schedule_id].days.push(day);
+            }
+
+            // Добавляем урок
+            day.lessons.push({
+                lesson_number: curr.lesson_number,
+                start_time: curr.start_time,
+                end_time: curr.end_time,
+                classroom: curr.classroom,
+            });
+
+            return acc;
+        }, {});
+
+        // Отправляем данные на фронт
+        res.json(structuredSchedules);
+    } catch (err) {
+        console.error("Ошибка при получении расписания:", err);
+        res.status(500).send("Ошибка сервера");
+    }
+});
+
+module.exports = router;
+
 module.exports = router;
