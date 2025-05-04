@@ -6,7 +6,6 @@ router.post("/schedule", async (req, res) => {
     const data = req.body;
     const pool = await poolPromise;
 
-    // Связь псевдонима с staff_id
     const aliasToStaffId = {
         shatsionokSchedule: 885326961,
         egorovSchedule: 885326962,
@@ -22,25 +21,27 @@ router.post("/schedule", async (req, res) => {
             DELETE FROM ScheduleLesson;
             DELETE FROM ScheduleDay;
             DELETE FROM Schedule;
+            DELETE FROM InstructorQueue;
 
             DBCC CHECKIDENT ('Schedule', RESEED, 0);
             DBCC CHECKIDENT ('ScheduleDay', RESEED, 0);
             DBCC CHECKIDENT ('ScheduleLesson', RESEED, 0);
+            DBCC CHECKIDENT ('InstructorQueue', RESEED, 0);
         `);
 
+        // Вставка расписаний
         for (const key of data.instructorStack) {
             const instructorData = data[key];
-            const staffId = aliasToStaffId[key]; // получаем staff_id по ключу
-
-            if (!staffId) continue; // пропускаем, если не найден
+            const staffId = aliasToStaffId[key];
+            if (!staffId) continue;
 
             for (const weekNumber of [1, 2]) {
                 const weekKey =
                     weekNumber === 1
                         ? "schedule_1th_week"
                         : "schedule_2nd_week";
+
                 if (instructorData[weekKey]) {
-                    // Вставляем расписание с привязкой к staff_id
                     const scheduleInsert = await pool
                         .request()
                         .input("week_number", weekNumber)
@@ -88,7 +89,22 @@ router.post("/schedule", async (req, res) => {
             }
         }
 
-        res.json({ message: "Расписание успешно сохранено" });
+        // Вставка очереди инструкторов
+        for (let i = 0; i < data.instructorStack.length; i++) {
+            const alias = data.instructorStack[i];
+            const staffId = aliasToStaffId[alias];
+            if (!staffId) continue;
+
+            await pool
+                .request()
+                .input("staff_id", staffId)
+                .input("position", i + 1).query(`
+                    INSERT INTO InstructorQueue (staff_id, position)
+                    VALUES (@staff_id, @position)
+                `);
+        }
+
+        res.json({ message: "Расписание и очередь успешно сохранены" });
     } catch (err) {
         console.error("Ошибка при сохранении:", err);
         res.status(500).send("Ошибка при сохранении расписания");
@@ -98,6 +114,8 @@ router.post("/schedule", async (req, res) => {
 router.get("/schedule", async (req, res) => {
     try {
         const pool = await poolPromise;
+
+        // Получение расписаний
         const result = await pool.request().query(`
             SELECT 
                 st.staff_id,
@@ -122,9 +140,22 @@ router.get("/schedule", async (req, res) => {
         `);
 
         const schedules = result.recordset;
-        console.log(result)
         const structured = {};
 
+        // Получение instructorStack
+        const queueResult = await pool.request().query(`
+            SELECT iq.staff_id, st.alias
+            FROM InstructorQueue iq
+            JOIN Staff st ON iq.staff_id = st.staff_id
+            ORDER BY iq.position ASC
+        `);
+
+        const instructorStack = queueResult.recordset.map(row => row.alias);
+
+        // Добавляем в корень структуры
+        structured["instructorStack"] = instructorStack;
+
+        // Формирование расписания
         for (const row of schedules) {
             const alias = row.alias;
             const weekKey =
@@ -145,7 +176,6 @@ router.get("/schedule", async (req, res) => {
 
             const dayArray = structured[alias][weekKey];
 
-            // Найдём уже существующий день
             let dayEntry = dayArray.find(
                 (entry) => Object.keys(entry)[0] === row.day_of_week
             );
@@ -179,5 +209,6 @@ router.get("/schedule", async (req, res) => {
         res.status(500).send("Ошибка при получении расписания");
     }
 });
+
 
 module.exports = router;
