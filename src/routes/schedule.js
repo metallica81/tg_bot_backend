@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { poolPromise } = require("../db");
+const { poolPromise } = require("../db/dbConfig");
 
 router.post("/schedule", async (req, res) => {
     const data = req.body;
@@ -166,7 +166,7 @@ router.get("/schedule", async (req, res) => {
             if (!structured[alias]) {
                 structured[alias] = {
                     name: `${row.surname} ${row.name}`,
-                    tg_id: row.chat_id,
+                    tg_id: Number(row.chat_id),
                     order_count: row.order_amount,
                     [weekKey]: [],
                 };

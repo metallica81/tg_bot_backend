@@ -1,26 +1,36 @@
 const express = require("express");
 const router = express.Router();
-const { poolPromise } = require("../db");
 
-router.get("/orders", async (req, res) => {
+router.get('/staff/:id', async (req, res) => {
+    const { id } = req.params;
+
     try {
-        const pool = await poolPromise;
-        const result = await pool.request().query("SELECT * FROM [Order]");
-        res.json(result.recordset);
-    } catch (err) {
-        console.error("Ошибка получения заказов:", err);
-        res.status(500).send("Ошибка сервера");
+        const staff = await req.Staff.findByPk(id);
+        if (!staff) {
+            return res.status(404).json({ error: 'Сотрудник не найден' });
+        }
+        res.json(staff);
+    } catch (error) {
+        console.error('Ошибка получения сотрудника:', error);
+        res.status(500).json({ error: 'Ошибка сервера', details: error.message });
     }
 });
 
-router.get("/staff", async (req, res) => {
+router.patch('/staff/:id', async (req, res) => {
+    const { id } = req.params;
+    const updatedData = req.body;
+
     try {
-        const pool = await poolPromise;
-        const result = await pool.request().query("SELECT * FROM Staff");
-        res.json(result.recordset);
-    } catch (err) {
-        console.error("Ошибка получения заказов:", err);
-        res.status(500).send("Ошибка сервера");
+        const [updatedRows] = await req.Staff.update(updatedData, {
+            where: { staff_id: id }
+        });
+        if (updatedRows === 0) {
+            return res.status(404).json({ error: 'Сотрудник не найден' });
+        }
+        const updatedStaff = await req.Staff.findByPk(id); // Получаем обновлённые данные
+        res.json(updatedStaff);
+    } catch (error) {
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
