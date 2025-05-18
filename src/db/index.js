@@ -14,9 +14,15 @@ const sequelize = new Sequelize(
     
 );
 
-const Staff = require("./Staff")(sequelize);
+const Staff = require("./tables/Staff")(sequelize);
+const Schedule = require("./tables/Schedule")(sequelize);
+const ScheduleDay = require("./tables/ScheduleDay")(sequelize);
+const ScheduleLesson = require("./tables/ScheduleLesson")(sequelize);
 
 module.exports = {
     sequelize: sequelize,
     Staff: Staff,
+    Schedule: Schedule,
+    ScheduleDay: ScheduleDay,
+    ScheduleLesson: ScheduleLesson
 };
