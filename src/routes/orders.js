@@ -1,36 +1,43 @@
 const express = require("express");
 const router = express.Router();
 
-router.get('/staff/:id', async (req, res) => {
-    const { id } = req.params;
+router.get("/staff/:chatId", async (req, res) => {
+    const { chatId } = req.params;
 
     try {
-        const staff = await req.Staff.findByPk(id);
+        const staff = await req.Staff.findOne({
+            where: { chat_id: chatId },
+        });
         if (!staff) {
-            return res.status(404).json({ error: 'Сотрудник не найден' });
+            return res.status(404).json({ error: "Сотрудник не найден" });
         }
         res.json(staff);
     } catch (error) {
-        console.error('Ошибка получения сотрудника:', error);
-        res.status(500).json({ error: 'Ошибка сервера', details: error.message });
+        console.error("Ошибка получения сотрудника:", error);
+        res.status(500).json({
+            error: "Ошибка сервера",
+            details: error.message,
+        });
     }
 });
 
-router.patch('/staff/:id', async (req, res) => {
-    const { id } = req.params;
+router.patch("/staff/:chatId", async (req, res) => {
+    const { chatId } = req.params;
     const updatedData = req.body;
 
     try {
         const [updatedRows] = await req.Staff.update(updatedData, {
-            where: { staff_id: id }
+            where: { chat_id: chatId },
         });
         if (updatedRows === 0) {
-            return res.status(404).json({ error: 'Сотрудник не найден' });
+            return res.status(404).json({ error: "Сотрудник не найден" });
         }
-        const updatedStaff = await req.Staff.findByPk(id); // Получаем обновлённые данные
+        const updatedStaff = await req.Staff.findOne({
+            where: { chat_id: chatId },
+        }); // Получаем обновлённые данные
         res.json(updatedStaff);
     } catch (error) {
-        res.status(500).json({ error: 'Ошибка сервера' });
+        res.status(500).json({ error: "Ошибка сервера" });
     }
 });
 
