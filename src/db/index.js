@@ -18,11 +18,19 @@ const Staff = require("./tables/Staff")(sequelize);
 const Schedule = require("./tables/Schedule")(sequelize);
 const ScheduleDay = require("./tables/ScheduleDay")(sequelize);
 const ScheduleLesson = require("./tables/ScheduleLesson")(sequelize);
+const Queue = require("./tables/Queue")(sequelize);
+
+// Установка ассоциаций
+Queue.belongsTo(Staff, {
+    foreignKey: "staff_id",
+    as: "Staff"
+});
 
 module.exports = {
     sequelize: sequelize,
     Staff: Staff,
     Schedule: Schedule,
     ScheduleDay: ScheduleDay,
-    ScheduleLesson: ScheduleLesson
+    ScheduleLesson: ScheduleLesson,
+    Queue: Queue
 };

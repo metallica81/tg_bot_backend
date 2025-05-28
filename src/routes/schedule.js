@@ -142,18 +142,18 @@ router.get("/schedule", async (req, res) => {
         const schedules = result.recordset;
         const structured = {};
 
-        // Получение instructorStack
-        const queueResult = await pool.request().query(`
-            SELECT iq.staff_id, st.alias
-            FROM InstructorQueue iq
-            JOIN Staff st ON iq.staff_id = st.staff_id
-            ORDER BY iq.position ASC
-        `);
+        // // Получение instructorStack
+        // const queueResult = await pool.request().query(`
+        //     SELECT iq.staff_id, st.alias
+        //     FROM InstructorQueue iq
+        //     JOIN Staff st ON iq.staff_id = st.staff_id
+        //     ORDER BY iq.position ASC
+        // `);
 
-        const instructorStack = queueResult.recordset.map(row => row.alias);
+        // const instructorStack = queueResult.recordset.map(row => row.alias);
 
-        // Добавляем в корень структуры
-        structured["instructorStack"] = instructorStack;
+        // // Добавляем в корень структуры
+        // structured["instructorStack"] = instructorStack;
 
         // Формирование расписания
         for (const row of schedules) {
