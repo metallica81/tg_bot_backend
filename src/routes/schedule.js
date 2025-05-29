@@ -133,27 +133,14 @@ router.get("/schedule", async (req, res) => {
                 sl.end_time,
                 sl.classroom
             FROM Staff st
-            JOIN Schedule s ON st.staff_id = s.staff_id
-            JOIN ScheduleDay sd ON s.schedule_id = sd.schedule_id
-            JOIN ScheduleLesson sl ON sd.day_id = sl.day_id
+            LEFT JOIN Schedule s ON st.staff_id = s.staff_id
+            LEFT JOIN ScheduleDay sd ON s.schedule_id = sd.schedule_id
+            LEFT JOIN ScheduleLesson sl ON sd.day_id = sl.day_id
             ORDER BY s.schedule_id, s.week_number, sd.day_of_week, sl.lesson_number
         `);
 
         const schedules = result.recordset;
         const structured = {};
-
-        // // Получение instructorStack
-        // const queueResult = await pool.request().query(`
-        //     SELECT iq.staff_id, st.alias
-        //     FROM InstructorQueue iq
-        //     JOIN Staff st ON iq.staff_id = st.staff_id
-        //     ORDER BY iq.position ASC
-        // `);
-
-        // const instructorStack = queueResult.recordset.map(row => row.alias);
-
-        // // Добавляем в корень структуры
-        // structured["instructorStack"] = instructorStack;
 
         // Формирование расписания
         for (const row of schedules) {
@@ -187,20 +174,22 @@ router.get("/schedule", async (req, res) => {
                 dayArray.push(dayEntry);
             }
 
-            dayEntry[row.day_of_week].push({
-                lessonNumber: row.lesson_number,
-                lessonTime: [
-                    [
-                        parseInt(row.start_time.split(":")[0]),
-                        parseInt(row.start_time.split(":")[1]),
+            if (row.start_time | row.end_time) {
+                dayEntry[row.day_of_week].push({
+                    lessonNumber: row.lesson_number,
+                    lessonTime: [
+                        [
+                            parseInt(row.start_time.split(":")[0]),
+                            parseInt(row.start_time.split(":")[1]),
+                        ],
+                        [
+                            parseInt(row.end_time.split(":")[0]),
+                            parseInt(row.end_time.split(":")[1]),
+                        ],
                     ],
-                    [
-                        parseInt(row.end_time.split(":")[0]),
-                        parseInt(row.end_time.split(":")[1]),
-                    ],
-                ],
-                classroom: row.classroom,
-            });
+                    classroom: row.classroom,
+                });
+            }
         }
 
         res.json(structured);
@@ -209,6 +198,5 @@ router.get("/schedule", async (req, res) => {
         res.status(500).send("Ошибка при получении расписания");
     }
 });
-
 
 module.exports = router;
